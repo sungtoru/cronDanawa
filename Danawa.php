@@ -158,7 +158,16 @@ class Danawa
                 {
                     //$html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $model['modelCode']);
                     $html = $this->_htmlObject('https://auto.danawa.com/auto/?Work=model&Model=4086');
+                    $specHtml = $html->find('div.modelSummary > div.info > div.spec', false);
+                    $spec = array();
+                    foreach($specHtml->find('span') as $span)
+                    {
+                        $spec[] = $span->plaintext;
+                    }
+
+                    print_r($spec);exit;
                 }
+
             }
         }
 
