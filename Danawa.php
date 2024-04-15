@@ -76,7 +76,7 @@ class Danawa
 
     private function setReg($path, $contents)
     {
-        file_put_contents( __DIR__ . $path, json_encode($contents) );
+        file_put_contents( __DIR__ . '/_reg/' .$path, json_encode($contents) );
     }
 
     private function getReg($fileName)
@@ -110,7 +110,7 @@ class Danawa
         }
         $html->clear();
 
-        $this->setReg('/_reg/brands.json', $result);
+        $this->setReg('brands.json', $result);
         //return $result;
     }
 
@@ -153,7 +153,7 @@ class Danawa
         }
 
 
-        $this->setReg('/_reg/models.json', $result);
+        $this->setReg('models.json', $result);
         //return $result;
     }
 
