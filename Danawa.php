@@ -74,6 +74,16 @@ class Danawa
         return file_get_html($url, false, $context);
     }
 
+    private function setReg($path, $contents)
+    {
+        file_put_contents( __DIR__ . $path, json_encode($contents) );
+    }
+
+    private function getReg($fileName)
+    {
+       return json_decode(file_get_contents(__DIR__ . '/_reg/'. $fileName), true);
+    }
+
 
     function getDigits($value) {
         return preg_replace('/[^\d]/', '', $value);
@@ -100,7 +110,8 @@ class Danawa
         }
         $html->clear();
 
-        return $result;
+        $this->setReg('/_reg/brands.json', $result);
+        //return $result;
     }
 
     public function getModels($brands)
@@ -128,7 +139,8 @@ class Danawa
                             $statCode = $class;
                         }
                         $result[$origin][$brandName][] = array (
-                             'modelName' => $this->_getText($li, 'span.name')
+                            'brandCode' => $brand['brandCode']
+                            ,'modelName' => $this->_getText($li, 'span.name')
                             ,'modelCode' => $modelCode
                             ,'statCode' => $statCode
                         );
@@ -140,7 +152,9 @@ class Danawa
             }
         }
 
-        return $result;
+
+        $this->setReg('/_reg/models.json', $result);
+        //return $result;
     }
 
     public function getLineups($models)
@@ -156,16 +170,33 @@ class Danawa
             {
                 foreach($brand as $model)
                 {
-                    //$html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $model['modelCode']);
-                    $html = $this->_htmlObject('https://auto.danawa.com/auto/?Work=model&Model=4086');
-                    $specHtml = $html->find('div.modelSummary > div.info > div.spec', false);
+                    $html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $model['modelCode']);
+                    //$html = $this->_htmlObject('https://auto.danawa.com/auto/?Work=model&Model=4086');
+                    $infoHtml = $html->find('div.modelSummary > div.info', false);
+                    $priceHtml = $infoHtml->find('div.price', false);
                     $spec = array();
-                    foreach($specHtml->find('span') as $span)
+                    foreach($infoHtml->find('div.spec > span') as $span)
                     {
                         $spec[] = $span->plaintext;
                     }
+                    $modelName = $this->_getText($infoHtml, 'div.title');
+                    $price = $this->_getText($priceHtml, 'div.newcar > div.price_title > span.num');
+                    $lentLease = $this->_getText($priceHtml, 'div.rentlease > div.price_title > span.num');
+                    $release = $this->_getText($infoHtml, 'div.date');
+                    $lineupHtml = $html->find('div.container_modelprice');
 
-                    print_r($spec);exit;
+
+                    $result[$model['modelCode']] = array(
+                        'modelName' => $modelName
+                        ,'price' => $price
+                        ,'lentLease' => $lentLease
+                        ,'segment' => $spec[0]
+                        ,'fules' => $spec[1]
+                        ,'release' => $release
+                        ,'etcSpec' => $spec[2].'|'.$spec[3]
+                    );
+
+
                 }
 
             }
@@ -175,18 +206,18 @@ class Danawa
 
     public function _run()
     {
-        //$brands = $this->getBrands();
-        //$models = $this->getModels($brands);
-        //$lineups = $this->getLineups($models);
-        $this->getLineups(
-            array(
-                'domestic' => array(
-                    '현대' => array(
-                        'modelCode' => 4086
-                    )
-                )
-            )
-        );
+        //$this->getBrands();
+        //$this->getModels($this->getReg('brands.json'));
+        $this->getLineups($this->getReg('models.json'));
+//        $this->getLineups(
+//            array(
+//                'domestic' => array(
+//                    '현대' => array(
+//                        'modelCode' => 4086
+//                    )
+//                )
+//            )
+//        );
     }
 
 }
