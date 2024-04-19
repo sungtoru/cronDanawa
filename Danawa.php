@@ -282,6 +282,12 @@ class Danawa
                     foreach($lineups as $trimIdx => $trims)
                     {
                         $html = $this->_htmlObject(self::MODEL_OPTION_URL . "&Code=" . $brandCode . $modelCode . $lineupCode . $trimIdx . '&Conf=@@PG@S20@@@3@15000@CashS@@@');
+
+                        if(!$html)
+                        {
+                            continue;
+                        }
+
                         preg_match_all('/estmDataAuto\[\'T'.$trimIdx.'\'\] = \'(.*?)\'/', $html, $trimData, PREG_SET_ORDER);
                         $a = gzuncompress(base64_decode($trimData[0][1]));
                         $b = $this->_dnwDecode($a);
@@ -349,6 +355,7 @@ class Danawa
 
         return $output;
     }
+
     public function _run()
     {
         //$this->getBrands();
@@ -357,8 +364,6 @@ class Danawa
         //$this->getTrims();
         $this->getOptions();
     }
-
-
 
 }
 
