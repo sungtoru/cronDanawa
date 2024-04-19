@@ -97,6 +97,7 @@ class Danawa
         $domestic = $html->find('div.domestic > ul.brandList > li');
         $imported = $html->find('div.import > ul.brandList > li');
         $result = array();
+        $sort = 1;
         foreach(array('domestic' => $domestic, 'imported' => $imported) as $origin => $ul)
         {
             foreach($ul as $li)
@@ -107,7 +108,9 @@ class Danawa
                 $brandName = $this->_getText($li, 'span.name');
                 $result[$origin][$brandName] = array(
                     'brandCode' => $query['Brand']
+                    ,'sort' => $sort
                 );
+                $sort ++;
             }
         }
         $html->clear();
@@ -271,7 +274,7 @@ class Danawa
             return;
         }
         $options = array();
-        $startTime = microtime(true);
+        //$startTime = microtime(true);
         
         foreach($data['domestic'] as $brandCode => $items) 
         {
@@ -289,6 +292,10 @@ class Danawa
                         }
 
                         preg_match_all('/estmDataAuto\[\'T'.$trimIdx.'\'\] = \'(.*?)\'/', $html, $trimData, PREG_SET_ORDER);
+                        if(!$trimData)
+                        {
+                            continue;
+                        }
                         $a = gzuncompress(base64_decode($trimData[0][1]));
                         $b = $this->_dnwDecode($a);
                         $c = urldecode($b);
@@ -304,12 +311,13 @@ class Danawa
                                 continue;
                             }
                             print_r($g);
+                            
                             $options[$brandCode][$modelCode][$trimIdx][$g[0]] = array(
                                 'optionName' => $g[1] 
                                 ,'optionPrice' => $g[2]
                                 ,'optionCode' => $g[3]
                                 ,'optionNum' => $g[4]
-                                ,'optionOverlapCode' => str_replace('#optionDetail', '', $g[5])
+                                ,'optionOverlapCode' => str_replace(array('#optionDetail', '#optionDeatil'), '', $g[5])
                             );
                         }
                         $html->clear();
@@ -317,9 +325,10 @@ class Danawa
                }
             }
         }
-        $endTime = microtime(true);
-        $elapsedTimeMs = ($endTime - $startTime) * 1000;
-        echo "프로세스가 걸린 시간: " . round($elapsedTimeMs, 2) . "밀리초";
+        //$endTime = microtime(true);
+        //$elapsedTimeMs = ($endTime - $startTime) * 1000;
+        //echo "프로세스가 걸린 시간: " . round($elapsedTimeMs, 2) . "밀리초";
+        echo "options completed \n";
         $this->_setReg('options.json', $options);
     }
     private function _dnwDecode($input)
