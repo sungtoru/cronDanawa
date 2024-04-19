@@ -16,7 +16,7 @@ class Danawa
         // TODO: Implement __destruct() method.
     }
 
-    public function _includeLibraries()
+    private function _includeLibraries()
     {
         require __DIR__ . '/lib/simple_html_dom.php';
     }
@@ -76,18 +76,18 @@ class Danawa
         return file_get_html($url, false, $context);
     }
 
-    private function setReg($path, $contents)
+    private function _setReg($path, $contents)
     {
         file_put_contents( __DIR__ . '/_reg/' .$path, json_encode($contents) );
     }
 
-    private function getReg($fileName)
+    private function _getReg($fileName)
     {
        return json_decode(file_get_contents(__DIR__ . '/_reg/'. $fileName), true);
     }
 
 
-    function getDigits($value) {
+    private function _getDigits($value) {
         return preg_replace('/[^\d]/', '', $value);
     }
 
@@ -112,13 +112,12 @@ class Danawa
         }
         $html->clear();
 
-        $this->setReg('brands.json', $result);
-        //return $result;
+        $this->_setReg('brands.json', $result);
     }
 
     public function getModels()
     {
-        $brands = $this->getReg('brands.json');
+        $brands = $this->_getReg('brands.json');
         if(!$brands)
         {
             return;
@@ -178,16 +177,13 @@ class Danawa
             }
         }
 
-
-        $this->setReg('models.json', $result);
-
-
-        //return $result;
+        echo "models completed \n";
+        $this->_setReg('models.json', $result);
     }
 
     public function getLineups()
     {
-        $models = $this->getReg('models.json');
+        $models = $this->_getReg('models.json');
         if(!$models)
         {
             return;
@@ -205,7 +201,7 @@ class Danawa
                     {
                         $lineupIdx = $this->_getAttr($lineup, 'button.button_updown', 'data-lineup');
                         $lineupRelease = $this->_getText($lineup, 'div.name > span.year');
-                        $lineups[$model['brandCode']][$model['modelCode']][] = array(
+                        $lineups[$origin][$model['brandCode']][$model['modelCode']][] = array(
                             'lineupCode' => $lineupIdx
                             ,'lineupName' => $this->_getText($lineup, 'div.name > strong')
                             ,'release' => str_replace(array('(', ')'), '', $lineupRelease)
@@ -213,79 +209,78 @@ class Danawa
                     }
                     $html->clear();
                 }
-
             }
         }
 
-        $this->setReg('lineups.json', $lineups);
+        echo "lineups completed \n";
+        $this->_setReg('lineups.json', $lineups);
     }
 
     public function getTrims()
     {
-        $data = $this->getReg('lineups.json');
+        $data = $this->_getReg('lineups.json');
         if(!$data)
         {
             return;
         }
         $trims = array();
-        foreach($data as $brandCode => $lineups)
+        foreach($data as $origin => $lineups)
         {
-            foreach($lineups as $modelCode => $lineup)
+            foreach($lineups as $brandCode => $lineup)
             {
-                foreach($lineup as $row)
+                foreach($lineup as $modelCode => $items)
                 {
-                    $html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $modelCode . '&Lineup=' . $row['lineupCode']);
-                    $trimsHtml = $html->find('div.price_contents', false);
-                    foreach($trimsHtml->find('dd.price_list') as $trim)
+                    foreach ($items as $row)
                     {
-                        foreach($trim->find('ul > li') as $li)
+                        $html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $modelCode . '&Lineup=' . $row['lineupCode']);
+                        $trimsHtml = $html->find('div.price_contents', false);
+                        foreach($trimsHtml->find('dd.price_list') as $trim)
                         {
-                            $trimName = $this->_getText($li, 'div.item.name > label');
-                            $engine = $this->_getText($li, 'div.item.engine');
-                            $milease = $this->_getText($li, 'div.item.mileage');
-                            $price = $this->_getText($li, 'span.item.price');
-                            $trimHtml = $this->_getAttr($li, 'input[name="compItemCk"]', 'class');
-                            $explodeTrim = explode('_', $trimHtml);
-                            $trimIdx = $explodeTrim[1];
-                            $trims[$brandCode][$modelCode][$row['lineupCode']][$trimIdx] = array(
-                                'trimName' => $trimName
-                                ,'engine' => $engine
-                                ,'milease' => $milease
-                                ,'price' => $price
-                            );
+                            foreach($trim->find('ul > li') as $li)
+                            {
+                                $trimName = $this->_getText($li, 'div.item.name > label');
+                                $engine = $this->_getText($li, 'div.item.engine');
+                                $milease = $this->_getText($li, 'div.item.mileage');
+                                $price = $this->_getText($li, 'span.item.price');
+                                $trimHtml = $this->_getAttr($li, 'input[name="compItemCk"]', 'class');
+                                $explodeTrim = explode('_', $trimHtml);
+                                $trimIdx = $explodeTrim[1];
+                                $trims[$origin][$brandCode][$modelCode][$row['lineupCode']][$trimIdx] = array(
+                                    'trimName' => $trimName
+                                    ,'engine' => $engine
+                                    ,'milease' => $milease
+                                    ,'price' => $price
+                                );
+                            }
                         }
+                        $html->clear();
+                        sleep(1);
                     }
-                    $html->clear();
-                    sleep(1);
                 }
-
             }
         }
-        $this->setReg('trims.json', $trims);
+        echo "trims completed \n";
+        $this->_setReg('trims.json', $trims);
     }
 
     public function getOptions()
     {
-        $data = $this->getReg('trims.json');
+        $data = $this->_getReg('trims.json');
         if(!$data)
         {
             return;
         }
         $options = array();
         $startTime = microtime(true);
-        $dataCount = count($data);
-        $completeCount = 0;
-        foreach($data as $brandCode => $lineups)
+        
+        foreach($data['domestic'] as $brandCode => $items) 
         {
-            foreach($lineups as $modelCode => $lineup)
+            foreach($items as $modelCode => $models)
             {
-                foreach($lineup as $lineupCode => $trims)
-                {
-                    foreach($trims as $trimIdx => $trim)
+               foreach($models as $lineupCode => $lineups)
+               {
+                    foreach($lineups as $trimIdx => $trims)
                     {
-                        //$html = $this->_htmlObject(self::MODEL_OPTION_URL . '&Code=30438495142386210&Conf=@@PG@S20@@@3@15000@CashS@@@');
-                        //preg_match_all('/estmDataAuto\[\'T'.'86210'.'\'\] = \'(.*?)\'/', $html, $trimData, PREG_SET_ORDER);
-
                         $html = $this->_htmlObject(self::MODEL_OPTION_URL . "&Code=" . $brandCode . $modelCode . $lineupCode . $trimIdx . '&Conf=@@PG@S20@@@3@15000@CashS@@@');
                         preg_match_all('/estmDataAuto\[\'T'.$trimIdx.'\'\] = \'(.*?)\'/', $html, $trimData, PREG_SET_ORDER);
                         $a = gzuncompress(base64_decode($trimData[0][1]));
@@ -297,8 +292,14 @@ class Danawa
                         foreach($f as $row)
                         {
                             $g = explode('`', $row);
+                            array_map('trim', $g);
+                            if(!count($g) || count($g) <= 1)
+                            {
+                                continue;
+                            }
+                            print_r($g);
                             $options[$brandCode][$modelCode][$trimIdx][$g[0]] = array(
-                                'optionName' => $g[1]
+                                'optionName' => $g[1] 
                                 ,'optionPrice' => $g[2]
                                 ,'optionCode' => $g[3]
                                 ,'optionNum' => $g[4]
@@ -306,22 +307,17 @@ class Danawa
                             );
                         }
                         $html->clear();
-                        sleep(1);
                     }
-                }
+               }
             }
-            $completeCount ++;
-            $progress = ($completeCount / $dataCount) * 100;
-
-            // 진행률 출력
-            echo "진행률: " . round($progress, 2) . "%\n";
         }
         $endTime = microtime(true);
         $elapsedTimeMs = ($endTime - $startTime) * 1000;
         echo "프로세스가 걸린 시간: " . round($elapsedTimeMs, 2) . "밀리초";
-        $this->setReg('options.json', $options);
+        $this->_setReg('options.json', $options);
     }
-    private function _dnwDecode($input) {
+    private function _dnwDecode($input)
+    {
         $_keyStr = 'ABCDEFGHIJKLMNQPORSTVUWXYZabcdefghjiklmnoqprstuvwxyz0123456789+/=';
         $output = '';
         $chr1 = $chr2 = $chr3 = '';
