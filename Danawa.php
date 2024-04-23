@@ -315,7 +315,7 @@ class Danawa
                             {
                                 continue;
                             }
-                            print_r($g);
+                            //print_r($g);
                             
                             $options[$brandCode][$modelCode][$trimIdx][$g[0]] = array(
                                 'optionName' => $g[1] 
