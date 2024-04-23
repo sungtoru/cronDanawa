@@ -1,4 +1,9 @@
 <?php
+/*
+프로젝트명 : 다나와 자동차 > 자동차 백과 크롤링
+작업일 : 2024-04-19
+작업자 : 오성태
+*/
 class Danawa
 {
     const BRAND_LIST_URL = 'https://auto.danawa.com/auto/';
@@ -367,10 +372,10 @@ class Danawa
 
     public function _run()
     {
-        //$this->getBrands();
-        //$this->getModels();
-        //$this->getLineups();
-        //$this->getTrims();
+        $this->getBrands();
+        $this->getModels();
+        $this->getLineups();
+        $this->getTrims();
         $this->getOptions();
     }
 
