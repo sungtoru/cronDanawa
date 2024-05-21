@@ -123,70 +123,115 @@ class Danawa
         $this->_setReg('brands.json', $result);
     }
 
-    public function getModels()
+    public function getTrims()
     {
-        $brands = $this->_getReg('brands.json');
-        if(!$brands)
+        $data = $this->_getReg('lineups.json');
+        if(!$data)
         {
             return;
         }
-        $result = array();
-        foreach($brands as $origin => $row)
+        $trims = array();
+
+        foreach($data as $origin => $brand)
         {
-            foreach($row as $brandName => $brand)
+            foreach($brand as $brandCode => $modelArr)
             {
-                $html = $this->_htmlObject(self::MODEL_LIST_URL . "=" . $brand['brandCode']);
-                $contents = $html->find('dl.modelBox > dd');
-                foreach($contents as $ul)
+                foreach($modelArr as $modelCode=>$lineupArr)
                 {
-                    foreach($ul->find('li') as $li)
+                    foreach($lineupArr as $key=>$row)
                     {
-                        $modelCode = $li->attr['code'];
-                        $modelInfoHtml = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $modelCode);
-                        $infoHtml = $modelInfoHtml->find('div.modelSummary > div.info', false);
-                        $priceHtml = $infoHtml->find('div.price', false);
-
-                        $spec = array();
-                        foreach($infoHtml->find('div.spec > span') as $span)
+                        $html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $modelCode . '&Lineup=' . $row['lineupCode']);
+                        
+                        foreach($html->find('dd.price_list') as $trim)
                         {
-                            $spec[] = $span->plaintext;
+                            foreach($trim->find('ul > li') as $li)
+                            {
+                                $trimLineup = $this->_getAttr($li, 'input[name="compItemCk"]', 'lineup');
+                                $trimHtml = $this->_getAttr($li, 'input[name="compItemCk"]', 'class');
+                                $explodeTrim = explode('_', $trimHtml);
+                                $trimIdx = $explodeTrim[1];
+
+                                if($row['lineupCode'] == $trimLineup)
+                                {
+                                    $trims[$origin][$brandCode][$modelCode][$row['lineupCode']][$trimIdx] = array(
+                                        'trimName' => $this->_getText($li, 'div.item.name > label')
+                                        ,'engine' => $this->_getText($li, 'div.item.engine')
+                                        ,'milease' => $this->_getText($li, 'div.item.mileage')
+                                        ,'price' => $this->_getText($li, 'span.item.price')
+                                        ,'brandName' => $row['brandName']
+                                        ,'modelName' => $row['modelName']
+                                        ,'lineupName' => $row['lineupName']
+                                    );
+                                }
+                                else
+                                {
+                                    continue;
+                                }
+                                
+                            }
                         }
-
-                        //$modelName = $this->_getText($infoHtml, 'div.title');
-                        $price = $this->_getText($priceHtml, 'div.newcar > div.price_title > span.num');
-                        $lentLease = $this->_getText($priceHtml, 'div.rentlease > div.price_title > span.num');
-                        $release = $this->_getText($infoHtml, 'div.date');
-
-                        $class = $li->attr['class'];
-                        $statCode = 'normal';
-                        if($class == 'comming' || $class == 'stock')
-                        {
-                            $statCode = $class;
-                        }
-                        $result[$origin][$brandName][] = array (
-                            'brandCode' => $brand['brandCode']
-                            ,'modelName' => $this->_getText($li, 'span.name')
-                            ,'modelCode' => $modelCode
-                            ,'statCode' => $statCode
-                            ,'price' => $price
-                            ,'lentLease' => $lentLease
-                            ,'segment' => $spec[0]
-                            ,'fules' => $spec[1]
-                            ,'release' => $release
-                            ,'etcSpec' => $spec[2].'|'.$spec[3]
-                        );
-
-                        $modelInfoHtml->clear();
+                        $html->clear();
+                        sleep(1);
                     }
+                    
                 }
-                $html->clear();
-                sleep(1);
-                //$this->_sleep();
+                
+
             }
         }
 
-        echo "models completed \n";
-        $this->_setReg('models.json', $result);
+        /*
+        foreach($data as $origin => $brand)
+        {
+            var_dump($brand);
+            
+            foreach($brand as $brandCode => $lineup)
+            {
+                foreach($lineup as $modelCode => $items)
+                {
+                    foreach ($items as $row)
+                    {
+
+                        $html = $this->_htmlObject(self::MODEL_INFO_URL . "=" . $modelCode . '&Lineup=' . $row['lineupCode']);
+
+                        $trimsHtml = $html->find('div.price_contents', false);
+
+                        foreach($trimsHtml->find('dd.price_list') as $trim)
+                        {
+                            foreach($trim->find('ul > li') as $li)
+                            {
+                                $trimName = $this->_getText($li, 'div.item.name > label');
+                                $engine = $this->_getText($li, 'div.item.engine');
+                                $milease = $this->_getText($li, 'div.item.mileage');
+                                $price = $this->_getText($li, 'span.item.price');
+                                $trimHtml = $this->_getAttr($li, 'input[name="compItemCk"]', 'class');
+                                $explodeTrim = explode('_', $trimHtml);
+                                $trimIdx = $explodeTrim[1];
+                                $trims[$origin][$brandCode][$modelCode][$row['lineupCode']][$trimIdx] = array(
+                                    'trimName' => $trimName
+                                    ,'engine' => $engine
+                                    ,'milease' => $milease
+                                    ,'price' => $price
+                                    ,'brandName' => $row['brandName']
+                                    ,'modelName' => $row['modelName']
+                                    ,'lineupName' => $row['lineupName']
+                                );
+
+
+                                
+                            }
+                            //print_r($trims[$origin][$brandCode][$modelCode][$row['lineupCode']][$trimIdx]);
+                          
+                        }
+                        $html->clear();
+                        sleep(1);
+                    }
+                }
+            }
+        }
+        */
+        echo "trims completed \n";
+        $this->_setReg('trims.json', $trims);
     }
 
     public function getLineups()
